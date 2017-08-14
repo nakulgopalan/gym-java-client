@@ -1,6 +1,7 @@
 package org.deeplearning4j.gym;
 
 
+import burlap.mdp.core.state.NullState;
 import com.mashape.unirest.http.JsonNode;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +23,7 @@ import java.util.Set;
  * @see <a href="https://github.com/openai/gym-http-api#api-specification">https://github.com/openai/gym-http-api#api-specification</a>
  */
 @Slf4j
-@Value
+//@Value
 public class Client<O, A, AS extends ActionSpace<A>> {
 
 
@@ -47,7 +48,19 @@ public class Client<O, A, AS extends ActionSpace<A>> {
     AS actionSpace;
     boolean render;
 
+    public O observationOld = null;
 
+
+
+    public Client(String url, String envId, String instanceId, GymObservationSpace<O> observationSpace, AS actionSpace, boolean render){
+        this.url=url;
+        this.envId=envId;
+        this.instanceId=instanceId;
+        this.observationSpace=observationSpace;
+        this.actionSpace=actionSpace;
+        this.render=render;
+
+    }
     /**
      * @param url url of the server
      * @return set of all environments running on the server at the url
@@ -75,7 +88,7 @@ public class Client<O, A, AS extends ActionSpace<A>> {
 
     /**
      * Step the environment by one action
-     *
+     *ActionSpace
      * @param action action to step the environment with
      * @return the StepReply containing the next observation, the reward, if it is a terminal state and optional information.
      */
@@ -84,12 +97,26 @@ public class Client<O, A, AS extends ActionSpace<A>> {
 
         JSONObject reply = ClientUtils.post(url + ENVS_ROOT + instanceId + STEP, body).getObject();
 
+
         O observation = observationSpace.getValue(reply, "observation");
         double reward = reply.getDouble("reward");
         boolean done = reply.getBoolean("done");
         JSONObject info = reply.getJSONObject("info");
 
-        return new StepReply<O>(observation, reward, done, info);
+        StepReply sr = null;
+
+        if(observationOld!=null){
+            sr = new StepReply(observationOld,observation,reward, done, info);
+            observationOld = observation;
+        }
+        else {
+            sr = new StepReply(NullState.instance,observation,reward, done, info);
+            observationOld = observation;
+        }
+
+
+
+        return sr;
     }
 
     /**
@@ -102,7 +129,7 @@ public class Client<O, A, AS extends ActionSpace<A>> {
         return observationSpace.getValue(resetRep.getObject(), "observation");
     }
 
-    /*
+    /*ActionSpace
     Present in the doc but not working currently server-side
     public void monitorStart(String directory) {
     

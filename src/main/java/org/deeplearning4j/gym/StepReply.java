@@ -12,7 +12,8 @@ import org.json.JSONObject;
 @Value
 public class StepReply<T> {
 
-    T observation;
+    T observationOld;
+    T observationNew;
     double reward;
     boolean done;
     JSONObject info;
